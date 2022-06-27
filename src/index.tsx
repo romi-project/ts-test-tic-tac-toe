@@ -2,14 +2,17 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 
-type BoardStateElement = 'O' | 'X' | null;
-type BoardState = {
-    squares: Array<BoardStateElement>;
+type GameStateElement = 'O' | 'X' | null;
+type GameStateHistory = {
+    squares: Array<GameStateElement>
+};
+type GameState = {
+    history: Array<GameStateHistory>;
     xIsNext: boolean;
 };
 
 type SquareProps = {
-    value: BoardStateElement;
+    value: GameStateElement;
     onClick: () => void;
 };
 
@@ -24,27 +27,10 @@ function Square(props: SquareProps) {
     );
 }
 
-class Board extends React.Component<any, BoardState> {
-    constructor(props: BoardState) {
-        super(props);
-        this.state = {
-            squares: Array<BoardStateElement>(9).fill(null),
-            xIsNext: true
-        }
-    }
-
+class Board extends React.Component<any, GameState> {
     render() {
-        const winner = this.checkWinner(this.state.squares);
-        let status;
-        if (winner) {
-            status = `Winner: ${winner}`;
-        } else {
-            status = `Next player: ${this.getCurrentSymbol()}`;
-        }
-
         return (
         <div>
-            <div className="status">{status}</div>
             <div className="board-row">
             {this.renderSquare(0)}
             {this.renderSquare(1)}
@@ -67,29 +53,72 @@ class Board extends React.Component<any, BoardState> {
     private renderSquare(i: number) {
         return (
             <Square
-                value={this.state.squares[i]}
-                onClick={() => this.handleClick(i)}
+                value={this.props.squares[i]}
+                onClick={() => this.props.onClick(i)}
             />
         );
     }
+}
 
-    private getCurrentSymbol(): BoardStateElement
-    {
-        return this.state.xIsNext ? 'X' : 'O';
+class Game extends React.Component<any, GameState> {
+    constructor(props: any) {
+        super(props);
+        this.state = {
+            history: [{
+                squares: Array<GameStateElement>(9).fill(null),
+            }],
+            xIsNext : true
+        };
+    }
+
+    render() {
+        const history = this.state.history;
+        const current = history[history.length - 1];
+        const winner = this.checkWinner(current.squares);
+        let status;
+        if (winner) {
+            status = `Winner: ${winner}`;
+        } else {
+            status = `Next player: ${this.getCurrentSymbol()}`;
+        }
+
+        return (
+        <div className="game">
+            <div className="game-board">
+                <Board
+                    squares={current.squares}
+                    onClick={(i: number) => this.handleClick(i)}
+                />
+            </div>
+            <div className="game-info">
+            <div>{/* status */}</div>
+            <ol>{/* TODO */}</ol>
+            </div>
+        </div>
+        );
     }
 
     private handleClick(i: number) {
-        const squares = this.state.squares.slice();
+        const history = this.state.history;
+        const current = history[history.length - 1];
+        const squares = current.squares.slice();
         if (this.checkWinner(squares) || squares[i])
             return;
         squares[i] =  this.getCurrentSymbol();
         this.setState({
-            squares: squares,
+            history: history.concat([{
+                squares: squares,
+            }]),
             xIsNext: !this.state.xIsNext
         });
     }
 
-    private checkWinner(squares: BoardStateElement[]): BoardStateElement | null {
+    private getCurrentSymbol(): GameStateElement
+    {
+        return this.state.xIsNext ? 'X' : 'O';
+    }
+
+    private checkWinner(squares: GameStateElement[]): GameStateElement | null {
         const lines = [
             [0, 1, 2],
             [3, 4, 5],
@@ -110,23 +139,10 @@ class Board extends React.Component<any, BoardState> {
     }
 }
 
-class Game extends React.Component {
-    render() {
-        return (
-        <div className="game">
-            <div className="game-board">
-            <Board />
-            </div>
-            <div className="game-info">
-            <div>{/* status */}</div>
-            <ol>{/* TODO */}</ol>
-            </div>
-        </div>
-        );
-    }
-}
-
 // ========================================
 
 const root = ReactDOM.createRoot(document.getElementById("root") as HTMLElement);
 root.render(<Game />);
+
+// https://ko.reactjs.org/tutorial/tutorial.html#showing-the-past-moves
+
