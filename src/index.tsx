@@ -8,6 +8,7 @@ type GameStateHistory = {
 };
 type GameState = {
     history: Array<GameStateHistory>;
+    stepNumber: number;
     xIsNext: boolean;
 };
 
@@ -67,14 +68,27 @@ class Game extends React.Component<any, GameState> {
             history: [{
                 squares: Array<GameStateElement>(9).fill(null),
             }],
+            stepNumber: 0,
             xIsNext : true
         };
     }
 
     render() {
         const history = this.state.history;
-        const current = history[history.length - 1];
+        const current = history[this.state.stepNumber];
         const winner = this.checkWinner(current.squares);
+
+        const moves = history.map((step, move) => {
+            const desc = move ?
+                `Go to move #${move}` :
+                'Go to game start';
+            return (
+                <li key={move}>
+                    <button onClick={() => this.jumpTo(move)}>{desc}</button>
+                </li>
+            );
+        });
+
         let status;
         if (winner) {
             status = `Winner: ${winner}`;
@@ -91,15 +105,22 @@ class Game extends React.Component<any, GameState> {
                 />
             </div>
             <div className="game-info">
-            <div>{/* status */}</div>
-            <ol>{/* TODO */}</ol>
+            <div>{status}</div>
+            <ol>{moves}</ol>
             </div>
         </div>
         );
     }
 
+    private jumpTo(step: number) {
+        this.setState({
+            stepNumber: step,
+            xIsNext: (step & 1) === 0,
+        });
+    }
+
     private handleClick(i: number) {
-        const history = this.state.history;
+        const history = this.state.history.slice(0, this.state.stepNumber + 1);
         const current = history[history.length - 1];
         const squares = current.squares.slice();
         if (this.checkWinner(squares) || squares[i])
@@ -109,6 +130,7 @@ class Game extends React.Component<any, GameState> {
             history: history.concat([{
                 squares: squares,
             }]),
+            stepNumber: history.length,
             xIsNext: !this.state.xIsNext
         });
     }
